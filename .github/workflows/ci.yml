@@ -1,0 +1,38 @@
+# Pipeline CI : compile et teste la solution à chaque push / pull request
+name: CI
+
+# QUAND le pipeline se déclenche
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:        # bouton "Run workflow" manuel dans l'onglet Actions
+
+# QUOI faire
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest   # machine virtuelle Linux fournie par GitHub
+
+    steps:
+      # 1. Récupérer le code du dépôt
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Installer le SDK .NET 9
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      # 3. Télécharger les paquets NuGet
+      - name: Restore
+        run: dotnet restore RevisionTracker.sln
+
+      # 4. Compiler (Release, comme en production)
+      - name: Build
+        run: dotnet build RevisionTracker.sln --configuration Release --no-restore
+
+      # 5. Lancer les tests (si un test échoue, le pipeline passe au rouge)
+      - name: Test
+        run: dotnet test RevisionTracker.sln --configuration Release --no-build --verbosity normal
